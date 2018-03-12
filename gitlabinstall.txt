@@ -1,0 +1,202 @@
+﻿gitlab install
+gitlab官网：https://about.gitlab.com/
+
+GitLab的两种安装方法:
+• 编译安装
+◦ 优点：可定制性强。数据库既可以选择MySQL,也可以选择PostgreSQL;服务器既可以选择Apache，也可以选择Nginx。
+◦ 缺点：国外的源不稳定，被墙时，依赖软件包难以下载。配置流程繁琐、复杂，容易出现各种各样的问题。依赖关系多，不容易管理，卸载GitLab相对麻烦。
+
+• 通过rpm包安装
+◦ 优点：安装过程简单，安装速度快。采用rpm包安装方式，安装的软件包便于管理。
+◦ 缺点：数据库默认采用PostgreSQL，服务器默认采用Nginx，不容易定制。
+
+通过rpm包、yum安装
+1. 下载安装新版本的RPM包
+途径1：通过清华开源镜像站下载rpm安装
+wget https://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/yum/el7/gitlab-ce-10.4.3-ce.0.el7.x86_64.rpm
+
+途径2：从官方获取RPM包后上传到/root目录下，rpm安装
+官方下载：https://packages.gitlab.com/gitlab/gitlab-ce/
+
+途径3：用管道的方式安装,如果没有yum.repo,需配repo，yum安装
+//sudo curl http://packages.gitlab.cc/install/gitlab-ce/script.rpm.sh | sudo bash
+//sudo yum install gitlab-ce
+
+途径4：命令行官网rpm安装
+curl -LJO https://packages.gitlab.com/gitlab/gitlab-ce/packages/el/6/gitlab-ce-XXX.rpm/download
+rpm -i gitlab-ce-XXX.rpm
+
+途径5：CentOS/RHEL repo安装
+新建 /etc/yum.repos.d/gitlab-ce.repo，内容为
+你的CentOS/RHEL版本:   
+[gitlab-ce]
+name=gitlab-ce
+baseurl=http://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/yum/el7
+repo_gpgcheck=0
+gpgcheck=0
+enabled=1
+gpgkey=https://packages.gitlab.com/gpg.key
+再执行，网络太慢了，下载也慢
+sudo yum makecache
+sudo yum install -y gitlab-ce
+...
+---> Package gitlab-ce.x86_64 0:10.4.3-ce.0.el7 will be installed
+Total download size: 391 M
+...
+
+
+2. 安装地方
+找到gitlab-ce-10.4.3-ce.0.el7.x86_64.rpm下载到本地后，通过Bitvise SSH Client工具将rpm包上传到gitlab虚拟机的/root目录下。
+
+
+安装gitlab步骤
+1、安装配置依赖项
+$ sudo yum install -y curl policycoreutils-python openssh-server openssh-clients postfix cronie
+$ systemctl enable sshd
+$ systemctl start sshd
+$ systemctl enable postfix
+$ systemctl start postfix
+
+# 打开访问权限，不是必须的
+# chkconfig postfix on  等价于 systemctl enable postfix.service
+# lokkit -s http -s ssh 还需要lokkit
+
+
+2、安装gitlab
+
+方法1：rpm包安装
+rpm安装包在/root下
+sudo rpm -ivh gitlab-ce-10.4.3-ce.0.el7.x86_64.rpm
+
+
+3.配置并启动GitLab
+打开`/etc/gitlab/gitlab.rb`,
+将`external_url = 'http://git.example.com'`修改为自己的IP地址：`http://xxx.xx.xxx.xx`,，然后执行下面的命令，对GitLab进行启动。
+> sudo gitlab-ctl reconfigure
+> sudo gitlab-ctl start
+
+4. 设置防火墙
+[root@localhost ~]# firewall-cmd --add-service=http --permanent
+success
+[root@localhost ~]# firewall-cmd --reload
+success
+
+5.登录GitLab, 管理员账号
+http方式： http://gitlabIP
+Username: root 
+Password: nokia123#
+指令方式：> gitlab-rails console production
+> user=User.where(name: "root").first
+> user.password=12345678
+> user.save!
+> quit
+//log
+[root@localhost ~]# gitlab-ctl tail
+
+方法2：yum安装，参考途径3
+//sudo yum install gitlab-ce
+
+
+更新gitlab
+2.1 关闭部分gitlab服务
+gitlab-ctl stop unicorn
+gitlab-ctl stop sidekiq
+gitlab-ctl stop nginx
+
+2.2 升级
+rpm -Uvh gitlab-ce-10.0.4-ce.0.el7.x86_64.rpm
+
+2.3 重新配置gitlab
+gitlab-ctl reconfigure
+ 
+2.4 重启gitlab
+gitlab-ctl restart
+
+三、更新汉化补丁
+3.1 安装git
+yum install -y git
+
+3.2 克隆获取汉化版本库 
+下载最新的汉化包 
+cd
+git clone https://gitlab.com/xhang/gitlab.git
+
+如果是要下载老版本的汉化包，需要加上老版本的分支，比如今天已经是10.4.3，我依旧想下载10.0.2，可以运行下面的语句。 
+git clone https://gitlab.com/xhang/gitlab.git -b v10.0.2-zh
+ 
+3.3 查看该汉化补丁的版本 
+cat gitlab/VERSION
+
+3.4 停止gitlab服务 
+gitlab-ctl stop
+
+3.5 切换到gitlab汉化包所在的目录
+
+cd /root/gitlab
+
+3.6 比较汉化标签和原标签，，导出patch用的diff文件到/root下 
+
+git diff v10.0.4 v10.0.4-zh > ../10.0.4-zh.diff
+
+3.7 回到/root目录
+3.8 将10.0.4-zh.diff作为补丁更新到gitlab中 
+yum install patch -y
+patch -d /opt/gitlab/embedded/service/gitlab-rails -p1 < 10.0.4-zh.diff
+
+3.9 启动gitlab 
+
+gitlab-ctl start
+
+3.10 重新配置gitlab 
+gitlab-ctl reconfigure
+
+使用管理员账户登录后可以看到gitlab已经完成了汉化。 
+
+
+git邮箱
+GitLab设置
+1.设置SMTP邮件服务器，用于GitLab发送邮件
+打开/etc/gitlab/gitlab.rb文件，将以下设置添加到文件中，保存。
+gitlab_rails['smtp_enable'] = true  
+gitlab_rails['smtp_address'] = “smtp.exmail.qq.com”
+gitlab_rails['smtp_port'] = 25  
+gitlab_rails['smtp_user_name'] = “allen@cloudminds.com“  
+gitlab_rails['smtp_password'] = "smtp password"  
+gitlab_rails['smtp_authentication']= “plain"  
+gitlab_rails['smtp_enable_starttls_auto']= true  
+gitlab_rails['gitlab_email_from']= 'allen@cloudminds.com'  
+gitlab_rails['gitlab_email_reply_to']= ‘noreply@cloudminds.com'  
+#比如用的是腾讯企业邮箱 
+vi /etc/gitlab/gitlab.rb 
+gitlab_rails['smtp_enable'] = true 
+gitlab_rails['smtp_address'] = "smtp.exmail.qq.com" 
+gitlab_rails['smtp_port'] = 25 
+gitlab_rails['smtp_authentication'] = "plain" 
+gitlab_rails['smtp_enable_starttls_auto'] = true 
+gitlab_rails['smtp_user_name'] = "xx@ll.com" 
+gitlab_rails['smtp_password'] = "password" 
+gitlab_rails['smtp_domain'] = "smtp.qq.com" 
+gitlab_rails['smtp_enable_starttls_auto'] = true 
+# If your SMTP server does not like the default 'From: gitlab@localhost' you 
+# can change the 'From' with this setting. 
+gitlab_rails['gitlab_email_from'] = 'xx@ll.com' 
+gitlab_rails['gitlab_email_reply_to'] = 'xx@ll.com'
+
+
+2.设置GitLab服务器外部链接
+
+同样，将以下设置田间到/etc/gitlab/gitlab.rb文件中。方便在外网访问
+1.<span style="font-size:14px;">external_url “http://192.168.0.13”</span>  
+
+GitLab在发送帐户验证邮件时，会包含此Url
+
+
+
+参考： 
+http://blog.csdn.net/zrp1992/article/details/78684033
+https://www.cnblogs.com/straycats/p/7707359.html
+http://blog.csdn.net/qq_38363371/article/details/78835538
+ 部署：http://www.cnblogs.com/straycats/p/7637373.html
+ 本地备份：http://www.cnblogs.com/straycats/p/7671204.html
+ 远程备份：http://www.cnblogs.com/straycats/p/7672692.html
+ 迁移/恢复：http://www.cnblogs.com/straycats/p/7702271.html
