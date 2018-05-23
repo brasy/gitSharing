@@ -17,7 +17,7 @@ export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
 
 cd /home/xying/gitMigration/
 svnsync sync file:///home/xying/gitMigration/svn_cloudBranch
-## As port 3031 maybe killed by building env manager
+## As port 3031 maybe killed by building env manager, ignore cli failure
 svnserve --root svn_cloudBranch --listen-port 3031 -d || echo "continue"
 ./subgit-3.2.7/bin/subgit install cloudBranch.git
 
