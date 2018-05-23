@@ -1,7 +1,7 @@
 ## Git migration, how to use subgit
 
-###LinuxÏÂĞŞ¸Ä/ÉèÖÃ»·¾³±äÁ¿JAVA_HOME£º
-1. ÏÂÔØ jdk: jdk-8u171-linux-x64.tar.gz
+###Linuxä¸‹ä¿®æ”¹/è®¾ç½®ç¯å¢ƒå˜é‡JAVA_HOMEï¼š
+1. ä¸‹è½½ jdk: jdk-8u171-linux-x64.tar.gz
 2. for a user, set env for ever
     //modify user directory files: .bash_profile
      $ vi /home/myuser/.bash_profile
@@ -126,7 +126,7 @@ b. config
 
 7. install or import git repo, from svn to git
 [xying@xxxx gitMigration]$  ./subgit-3.3.1/bin/subgit install project.git
-'notes: if you modify config and cut down some branches£¬need parameter(rebuild), force install
+'notes: if you modify config and cut down some branchesï¼Œneed parameter(rebuild), force install
 [xying@xxxx gitMigration]$ ./subgit-3.3.1/bin/subgit install --rebuild project.git
 
 
