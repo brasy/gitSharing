@@ -1,2 +1,2 @@
 # gitSharing
-git sharing for open class
+git sharing for internal open classes
